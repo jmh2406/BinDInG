@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "BinDInG"
+version = "0.1.0"
+authors = [{name = "Julian Marcus Hauf", email = "jhauf@ikp.tu-darmstadt.de"}]
+description = "BinDInG- Bin-wise determination of Incident Gamma-rays"
+dependencies = []
+
+[tool.setuptools]
+packages = ["src"] # Hier explizit deine Ordner auflisten

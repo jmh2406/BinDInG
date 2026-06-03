@@ -1,0 +1,6 @@
+README.md
+pyproject.toml
+BinDInG.egg-info/PKG-INFO
+BinDInG.egg-info/SOURCES.txt
+BinDInG.egg-info/dependency_links.txt
+BinDInG.egg-info/top_level.txt
