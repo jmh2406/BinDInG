@@ -3,7 +3,7 @@ from pathlib import Path
 
 class ProjectPaths_Binding:
     def __init__(self):
-        self.ROOT = Path(__file__).resolve().parent.parent
+        self.ROOT = Path(__file__).resolve().parent.parent.parent
         self.SRC_DIR = self.ROOT 
 
         '''
