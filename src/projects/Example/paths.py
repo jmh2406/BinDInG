@@ -48,7 +48,10 @@ class ProjectPaths_Binding:
         your response matrices.
         Response matrices need to be given in .h5 format for now.
         '''
+        if cascade == '0deg':
+            path_name = f'{self.REMA_BASE_DIR}/{cascade}/sim_1M_0deg_2_5cmoffset/resp_matrix_{cascade}_1M_0deg_2_5cmoffset.h5'
+        else: 
+            path_name = f'{self.REMA_BASE_DIR}/{cascade}/sim_100M/resp_matrix_{cascade}_100M.h5'
 
-        path_name = f'{self.REMA_BASE_DIR}/{cascade}/sim_100M/resp_matrix_{cascade}_100M.h5'
         return path_name
 

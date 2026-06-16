@@ -14,6 +14,7 @@ deconv_params = {
         'cut_dets_high' : [1.04, 1.04, 1.04, 1.04],
         'cut_dets_low' : [0.965, 0.95, 0.965, 0.95],
         'cal_0deg' : [0, 1], 
+        'cut_dets_0deg': [0.95, 1.04],
         '0deg_nr' : 178,
     }, 
 

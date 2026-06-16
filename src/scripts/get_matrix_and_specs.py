@@ -15,19 +15,28 @@ def get_matr(project: str, cascade: str, detector: str) -> np.ndarray:
     
     PP = importlib.import_module(f'src.projects.{project}.paths').ProjectPaths_Binding()
     rema_path = PP.get_rema_path(cascade)
-
     setup = importlib.import_module(f'src.projects.{project}.setup').setup
-    idx_det = setup['detectors'].index(detector)
-    typus = setup['types'][idx_det]
+
+    if cascade != '0deg':
+        idx_det = setup['detectors'].index(detector)
+        typus = setup['types'][idx_det]
+
+    else:
+        typus = 'HPGe'
+        detector = '0deg'
 
 
     p = Path(rema_path)
     with h5py.File(p, "r") as f:
-        idx_h5 = setup['h5_indices'][idx_det]
         if typus == 'Clover':
+            idx_h5 = setup['h5_indices'][idx_det]
             matrices = [f[f'det{i}'][() ] for i in idx_h5]
             data = np.sum(matrices, axis=0)
+        elif detector == '0deg':
+            idx_h5_0deg = setup['h5_indices_0deg']
+            data = f[f'det{idx_h5_0deg}'][()]
         else:
+            idx_h5 = setup['h5_indices'][idx_det]
             data = f[f'det{idx_h5}'][()]
 
         return data
@@ -134,20 +143,27 @@ def get_meas_spec(project: str,
 
     PP = importlib.import_module(f'src.projects.{project}.paths').ProjectPaths_Binding()
     setup = importlib.import_module(f'src.projects.{project}.setup').setup
-    idx_det = setup['detectors'].index(detector)
-
 
     bin_nr = max_bin // bin_width
-
-
     run04d = f'{run:04d}' if type(run) == int else run
-    typus = setup['types'][idx_det]
 
-    if setup['types'][idx_det] == 'Clover':
-        PP.get_spec_path(run, typus, detector + 'E1')
-        spec_raw = np.sum([np.loadtxt(PP.get_spec_path(run, typus, detector + f'E{x}')) for x in range(1, 5)], axis = 0)
+
+    if detector != 'ZeroDegree':
+        idx_det = setup['detectors'].index(detector)
+        typus = setup['types'][idx_det]
+
+
+        # run04d = f'{run:04d}' if type(run) == int else run
+
+        if setup['types'][idx_det] == 'Clover':
+            spec_raw = np.sum([np.loadtxt(PP.get_spec_path(run, typus, detector + f'E{x}')) for x in range(1, 5)], axis = 0)
+        else:
+            spec_raw = np.loadtxt(PP.get_spec_path(run, typus, detector))
+
     else:
+        typus = 'HPGe'
         spec_raw = np.loadtxt(PP.get_spec_path(run, typus, detector))
+
 
     if len(cal) == 2:
         spec = recalibrate_and_rebin_to_20000(spec_raw,  cal[1], cal[0])
