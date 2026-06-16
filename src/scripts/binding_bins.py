@@ -19,7 +19,6 @@ class binding:
                  bin_width: int = 10, 
                  max_energy = 10000,
                  branchings = True, 
-                 br12p2 = False,
                  O_cont = False,
                  ng_cont = False, 
                  bg_bins = 10,
@@ -37,7 +36,6 @@ class binding:
         self.O_cont_bool = O_cont
         self.ng_cont_bool = ng_cont
         self.branch_bool = branchings
-        self.br1_2p2_bool = br12p2
         self.bg_bins = bg_bins
         self.bg_bins_0deg = bg_bins_0deg
 

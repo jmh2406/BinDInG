@@ -130,7 +130,7 @@ class Plot_binding:
         if beam_deconv:
 
 
-            set_font(25)
+            set_font(fonts_size)
             fig, ax = plt.subplots(figsize=plot_shape)
             axis_ticks(ax)
 
