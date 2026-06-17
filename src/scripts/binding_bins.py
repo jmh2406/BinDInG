@@ -7,17 +7,12 @@ from pathlib import Path
 import numpy as np 
 from src.scripts.get_matrix_and_specs import get_respmatrix, get_meas_spec
 
-def pytensor_interp(x_new, x_old, y_old):
-    return pt.extra_ops.interp(x_new, x_old, y_old)
-
-
 class binding:
     def __init__(self, 
                  project: str,
                  runnr: int,  
                  savename: str, 
-                 bin_width: int = 10, 
-                 max_energy = 10000,
+                 bin_width: int = 10,
                  branchings = True, 
                  O_cont = False,
                  ng_cont = False, 
@@ -47,7 +42,7 @@ class binding:
         self.savename = savename
         self.ebeam = self.deconv_params[runnr]['beam']
         self.bin_width = bin_width
-        self.bin_centers = np.arange(bin_width, max_energy + bin_width, bin_width)
+        self.bin_centers = np.arange(bin_width, self.setup['max_energy'] + bin_width, bin_width)
         self.low = self.deconv_params[runnr]['low']
         self.high = self.deconv_params[runnr]['high']
         self.mask_energy = (self.bin_centers >= self.low) & (self.bin_centers <= self.high) 
