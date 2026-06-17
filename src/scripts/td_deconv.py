@@ -32,6 +32,7 @@ class td_deconv:
                        detector: str, 
                        parity: int,
                        state_idx: int, 
+                       cal: list = [0, 1], 
                        color_meas: str = 'black',
                        color_inc: str = 'blue', 
                        plot_shape: tuple = (15, 10),
@@ -42,12 +43,21 @@ class td_deconv:
         set_font(25)
         fig, ax = plt.subplots(figsize=plot_shape)
         axis_ticks(ax)
+
+        if len(cal) == 2:
+            new_steps = cal[0] + cal[1] * self.bind_inst.steps
+
+        elif len(cal) == 3:
+            new_steps = cal[0] + cal[1] * self.bind_inst.steps + cal[2] * self.bind_inst.steps**2
+        else:
+            print('Choose linear or parabolic calibration.')
+            return
         
-        plt.step(self.bind_inst.steps, 
+        plt.step(new_steps, 
                  self.inc[idx_det][parity][state_idx] * np.diag(self.bind_inst.rema_dip[idx_det][parity][state_idx].eval()), 
                  color = color_inc, where = 'mid', label = 'Measured spectrum')
         
-        plt.step(self.bind_inst.steps, 
+        plt.step(new_steps, 
                  self.bind_inst.spec_meas_all_dets[idx_det].eval() - self.bg_const[idx_det], 
                  color = color_meas, where = 'mid', label = 'Top-down deconvolution')
         
