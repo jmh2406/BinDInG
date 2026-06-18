@@ -26,7 +26,7 @@ Here, the created files are sorted with respect to the project they belong to.
 
 ### Installation and Setup
 
-Installation should simpy require executing:
+Installation should simply require executing:
 ```python 
     pip install git+https://github.com/jmh2406/BinDInG.git
 ```
@@ -52,7 +52,7 @@ Deconvolutions can be executed with the exe_binding.py executable. Change the pa
 binding class in the exe_binding.py executable to vary which run and with which options you want run. 
 
 View the results of your deconvolution in the deconv_playground.ipynb notebook. Here, top-down deconvolutions can be 
-conducted as well, in order to test the calibration of your measured spectra 
+conducted as well, in order to test the calibration of your measured spectra and the validity of your detector response matrices. 
 
 For questions, you can contact Julian Hauf (jhauf@ikp.tu-darmstadt.de)
 
