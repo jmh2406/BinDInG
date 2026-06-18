@@ -28,10 +28,10 @@ Here, the created files are sorted with respect to the project they belong to.
 
 Installation should simply require executing:
 ```python 
-    pip install git+https://github.com/jmh2406/BinDInG.git
+    git clone https://github.com/jmh2406/BinDInG.git
 ```
 
-You can execute 
+In the src/scripts/ directory you can execute 
 
 ```bash 
     ./make_new_project.sh <new_project>
