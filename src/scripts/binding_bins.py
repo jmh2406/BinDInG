@@ -96,7 +96,7 @@ class binding:
             for det in self.setup['detectors']:
                 print(f'Get isotropic response matrix of detector {det}...')
                 rema_iso.append(
-                    get_respmatrix(self.project, '1.5m_0.5m', det, self.bin_width)[np.ix_(self.mask_energy, self.mask_energy)][:, ::-1, ::-1] 
+                    get_respmatrix(self.project, '1.5m_0.5m', det, self.bin_width)[np.ix_(self.mask_energy, self.mask_energy)]
                 )
 
             rema_iso = np.array(rema_iso)
@@ -112,7 +112,7 @@ class binding:
             for det in self.setup['detectors']:
                 print(f'Get response matrix of a 0^+ --> 2^+ --> 0^+ cascade for detector {det}...')
                 rema_16O.append(
-                    get_respmatrix(self.project, '2p_0p', det, self.bin_width)[np.ix_(self.mask_energy, self.mask_energy)][:, ::-1, ::-1] 
+                    get_respmatrix(self.project, '2p_0p', det, self.bin_width)[np.ix_(self.mask_energy, self.mask_energy)]
                 )
 
             rema_16O = np.array(rema_16O)
@@ -138,7 +138,7 @@ class binding:
                         sign = '+' if parity == 'p' else '-'
                         print(f'Get response matrix of a 0^+ --> 1^{sign} --> {spin}^+ cascade for detector {det}...')
                         rema_dip_spins.append(
-                            get_respmatrix(self.project, f'1{parity}_{spin}p', det, self.bin_width)[np.ix_(self.mask_energy, self.mask_energy)][:, ::-1, ::-1] 
+                            get_respmatrix(self.project, f'1{parity}_{spin}p', det, self.bin_width)[np.ix_(self.mask_energy, self.mask_energy)]
                         )
                     rema_dip_parities.append(rema_dip_spins)
                         
@@ -149,7 +149,7 @@ class binding:
         
 
         self.spec_meas_all_dets = pytensor.shared(np.array([
-            get_meas_spec('Example', 
+            get_meas_spec(self.project, 
                           self.runnr, 
                           det, 
                           self.deconv_params[runnr]['cal'][idx_det], 
@@ -159,7 +159,7 @@ class binding:
         ]))
 
         self.spec_meas_beam = get_meas_spec(
-            'Example',
+            self.project,
             self.deconv_params[self.runnr]['0deg_nr'], 
             'ZeroDegree', 
             self.deconv_params[self.runnr]['cal_0deg'], 
@@ -173,8 +173,9 @@ class binding:
         self.rema_iso = pytensor.shared(get_cached_data("rema_iso", self.low, self.high, bin_width, lambda: compute_iso_rema()))
         self.rema_16O = pytensor.shared(get_cached_data("rema_16O", self.low, self.high, bin_width, lambda: compute_16O_rema()))
         self.rema_dip = pytensor.shared(get_cached_data("rema_dip", self.low, self.high, bin_width, lambda: compute_dip_rema()))
+
         self.rema_beam = pytensor.shared(get_cached_data("rema_beam", self.low, self.high, bin_width, 
-                        lambda: get_respmatrix(self.project, '0deg', '0deg', bin_width)[np.ix_(self.mask_energy, self.mask_energy)][:, ::-1, ::-1] ))
+                        lambda: get_respmatrix(self.project, '0deg', '0deg', bin_width)[np.ix_(self.mask_energy, self.mask_energy)]))
 
 
         self.steps = self.bin_centers[self.mask_energy]
@@ -231,8 +232,16 @@ class binding:
                 )# dimensions (dets, bins)
 
                 # Fold both incident spectra with corresponding detector response matrices
-                ng_fold_scinti = pm.Deterministic('ng_fold_scinti', self.rema_iso[self.mask_scinti] @ ng_inc_scinti[:, :, None])[:, :, 0]  # shape (det, bins) x (det, bins, bins) -> (det, ng, bins)
-                ng_fold_germanium = pm.Deterministic('ng_fold_germanium', self.rema_iso[self.mask_germanium] @ ng_inc_germanium[:,:, None])[:, :, 0] # shape (det, binss) x (det, bins, bins) -> (det, ng, bins)
+                ng_fold_scinti = pm.Deterministic('ng_fold_scinti', 
+                                                    (pt.transpose(self.rema_iso[self.mask_scinti], (0, 2, 1)) @ 
+                                                    ng_inc_scinti[:, :, None]
+                                                    )[:, :, 0])
+                                                      # shape (det, bins) x (det, bins, bins) -> (det, bins)
+                ng_fold_germanium = pm.Deterministic('ng_fold_germanium', 
+                                                     (pt.transpose(self.rema_iso[self.mask_germanium], (0, 2, 1)) @ 
+                                                     ng_inc_germanium[:, :, None]
+                                                     )[:, :, 0])
+                                                      # shape (det, binss) x (det, bins, bins) -> (det, bins)
 
 
             
@@ -264,8 +273,14 @@ class binding:
 
 
                 # Fold both incident spectra with corresponding detector response matrices
-                O_fold_scinti = pm.Deterministic('O_fold_scinti', self.rema_16O[self.mask_scinti] @ O_inc_scinti[:, :, None])[:, :, 0]  # shape (det, bins) x (det, bins, bins) -> (det, ng, bins)
-                O_fold_germanium = pm.Deterministic('O_fold_germanium', self.rema_16O[self.mask_germanium] @ O_inc_germanium[:, :, None])[:, :, 0] # shape (det, binss) x (det, bins, bins) -> (det, ng, bins)
+                O_fold_scinti = pm.Deterministic('O_fold_scinti', 
+                                                 (pt.transpose(self.rema_16O[self.mask_scinti], (0, 2, 1)) @ 
+                                                 O_inc_scinti[:, :, None]
+                                                 )[:, :, 0])  # shape (det, bins) x (det, bins, bins) -> (det, ng, bins)
+                O_fold_germanium = pm.Deterministic('O_fold_germanium', 
+                                                 (pt.transpose(self.rema_16O[self.mask_germanium], (0, 2, 1)) @ 
+                                                 O_inc_germanium[:, :, None]
+                                                 )[:, :, 0]) # shape (det, binss) x (det, bins, bins) -> (det, ng, bins)
 
 
 
@@ -281,13 +296,16 @@ class binding:
                 for idx_parity, parity in enumerate(['p', 'm']):
                     mask_type = self.mask_scinti if type == 'scinti' else self.mask_germanium
                     if type == 'scinti':
-                        mask_parity = self.mask_hor_scinti if type == 'p' else self.mask_ver_scinti
+                        mask_parity = self.mask_hor_scinti if parity == 'p' else self.mask_ver_scinti
                     else:
-                        mask_parity = self.mask_hor_germanium if type == 'p' else self.mask_ver_germanium
+                        mask_parity = self.mask_hor_germanium if parity == 'p' else self.mask_ver_germanium
 
-                    prior_raw = ((self.spec_meas_all_dets[mask_type][mask_parity] - bg_const[mask_type][mask_parity])
-                                    @ pt.linalg.inv(self.rema_dip[mask_type][mask_parity][idx_parity][0]) 
-                                    ) # dimensions are (detector, parity, final_state, bins, bins) and (detector, bins), respectively 
+                    # inv_matr = pt.matrix_transpose(pt.linalg.inv(self.rema_dip[mask_type][mask_parity][idx_parity][0])) 
+
+                    prior_raw =  (pt.matrix_transpose(pt.linalg.inv(self.rema_dip[mask_type][mask_parity][idx_parity][0])) @ 
+                                          (self.spec_meas_all_dets[mask_type][mask_parity] - bg_const[mask_type][mask_parity])[:, None]
+                                            )[:, 0]
+                                    # dimensions are ( bins, bins) and ( bins), respectively 
                 
                     contributions = [] # subtract contributions from (n,gamma) or contaminating NRF lines (i.e. 16O at ~6915 keV)
                     if self.ng_cont_bool:
@@ -358,22 +376,29 @@ class binding:
             nrf_inc_free_scinti = pm.Exponential(
                 'nrf_inc_free_scinti', 
                 lam = 1.0 / pt.clip(priors_nrf_scinti, 1e-6, np.inf), 
-                shape = (len(self.dets[self.mask_scinti]), len(self.setup['e_states']), len(self.bin_centers[self.mask_energy]))
-            )
+                shape = (2, len(self.setup['e_states']), len(self.bin_centers[self.mask_energy]))
+            ) # parities, states, bins
 
             nrf_inc_free_germanium = pm.Exponential(
                 'nrf_inc_free_germanium', 
                 lam = 1.0 / pt.clip(priors_nrf_germanium, 1e-6, np.inf), 
-                shape = (len(self.dets[self.mask_germanium]), len(self.setup['e_states']), len(self.bin_centers[self.mask_energy]))
-            )
+                shape = (2, len(self.setup['e_states']), len(self.bin_centers[self.mask_energy]))
+            ) # parities, states, bins
 
 
             # Fold all NRF components. 
-            nrf_fold_scinti = pm.Deterministic('nrf_fold_scinti', self.rema_dip[self.mask_scinti][:, :, :len(self.setup['e_states']), ::-1, ::-1] @ nrf_inc_free_scinti[None, :, :, :, None])[:, :, :, :, 0] # shapes: (dets, parites, states, bins, bins) x (parities, states, bins, dummy)
+
+            nrf_fold_scinti = pm.Deterministic('nrf_fold_scinti', 
+                                               (pt.transpose(self.rema_dip[self.mask_scinti], (0, 1, 2, 4, 3)) @ 
+                                               nrf_inc_free_scinti[None, :, :, :, None]
+                                               )[:, :, :, :, 0])# shapes: (dets, parites, states, bins, Bins) x (parities, states, Bins)
             nrf_fold_sum_scinti = pm.Deterministic('nrf_fold_sum_scinti', pt.sum(nrf_fold_scinti, axis=(1,2))) # shapes (dets, bins)
         
             # Fold all NRF components for germaniums. 
-            nrf_fold_germanium = pm.Deterministic('nrf_fold_germanium', self.rema_dip[self.mask_germanium][:, :, :len(self.setup['e_states']), ::-1, ::-1] @ nrf_inc_free_germanium[None, :, :, :, None])[:, :, :, :, 0] # shapes: (dets, parites, states, bins, bins) x (parities, states, bins, dummy)
+            nrf_fold_germanium = pm.Deterministic('nrf_fold_germanium', 
+                                                    (pt.transpose(self.rema_dip[self.mask_germanium], (0, 1, 2, 4, 3)) @ 
+                                                    nrf_inc_free_germanium[None, :, :, :, None]
+                                                    )[:, :, :, :, 0])# shapes: (dets, parites, states, bins, Bins) x (parities, states, Bins)
             nrf_fold_sum_germanium = pm.Deterministic('nrf_fold_sum_germanium', pt.sum(nrf_fold_germanium, axis=(1,2))) # shapes (dets, bins)
 
 
@@ -387,12 +412,16 @@ class binding:
             )   
             atomic_scale_scinti = pm.Uniform("Atomic_scale_scinti", 4, 32, shape=(len(self.dets[self.mask_scinti]), ))
             atomic_backg_scinti_inc = pm.Deterministic(
-                "Atomic_backg_scinti_inc", pt.clip(
+                "Atomic_backg_inc_scinti", pt.clip(
                     pt.exp(atomic_scale_scinti[:, None] - atomic_slope_scinti[:, None] * self.bin_centers[self.mask_energy])
                     - pt.exp(atomic_scale_scinti[:, None] - atomic_slope_scinti[:, None] * self.ebeam), 0, np.inf
                 )
             )
-            atomic_backg_scinti_fold = pm.Deterministic("Atomic_backg_scinti_fold", self.rema_iso[self.mask_scinti] @ atomic_backg_scinti_inc[:, :, None])[:, :, 0]   
+
+            atomic_backg_scinti_fold = pm.Deterministic("Atomic_backg_fold_scinti", 
+                                                        (pt.transpose(self.rema_iso[self.mask_scinti], (0, 2, 1)) @ 
+                                                        atomic_backg_scinti_inc[:, :, None]
+                                                        )[:, :, 0])
 
 
 
@@ -402,14 +431,16 @@ class binding:
             )   
             atomic_scale_germanium = pm.Uniform("Atomic_scale_germanium", 4, 32, shape=(len(self.dets[self.mask_germanium]), ))
             atomic_backg_germanium_inc = pm.Deterministic(
-                "Atomic_backg_germanium_inc", pt.clip(
+                "Atomic_backg_inc_germanium", pt.clip(
                     pt.exp(atomic_scale_germanium[:, None] - atomic_slope_germanium[:, None] * self.bin_centers[self.mask_energy])
-                    - pt.exp(atomic_scale_germanium[:, None] - atomic_slope_germanium[:, None] * self.ebeam), 0, np.inf
+                    - pt.exp(atomic_scale_germanium[:, None] - atomic_slope_germanium[:, None] * self.ebeam), 0, pt.inf
                 )
             )
-            atomic_backg_germanium_fold = pm.Deterministic("Atomic_backg_germanium_fold", self.rema_iso[self.mask_germanium] @ atomic_backg_germanium_inc[:, :, None])[:, :, 0]   
-
-
+            atomic_backg_germanium_fold = pm.Deterministic("Atomic_backg_fold_germanium", 
+                                                        (pt.transpose(self.rema_iso[self.mask_germanium], (0, 2, 1)) @ 
+                                                        atomic_backg_germanium_inc[:, :, None]
+                                                        ))[:, :, 0]
+ 
 
             cont_germanium = []
             cont_scinti = []
@@ -446,7 +477,6 @@ class binding:
                 np.ones(len(self.bin_centers[self.mask_energy])) * bg_const[self.mask_germanium][:, None],
                 1e-6, pt.inf) * np.array(self.setup['eff_ratio'])[self.mask_germanium][:, None]
             )
-
 
             # completion of detector array model by comparing model with measured data for scintillators and germaniums
             detector_obs = pm.Poisson(

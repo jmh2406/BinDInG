@@ -38,50 +38,49 @@ class Plot_binding:
         self.bind_inst = binding(project, run, savename)
 
 
-        self.post_total = unp.uarray(
-            np.concatenate([idata.posterior["spec_dets_scinti"].mean(dim=["chain", "draw"]).values, idata.posterior["spec_dets_germanium"].mean(dim=["chain", "draw"]).values], axis = 0),
-            np.concatenate([idata.posterior["spec_dets_scinti"].std(dim=["chain", "draw"]).values, idata.posterior["spec_dets_germanium"].std(dim=["chain", "draw"]).values], axis = 0)
-        )
+        def get_paramlist(quantity: str) -> list:
+            data_scinti = idata.posterior[f'{quantity}_scinti']
+            data_germanium = idata.posterior[f'{quantity}_germanium']
+            
+
+            val_raw_scinti, unc_raw_scinti = data_scinti.mean(dim=["chain", "draw"]).values, data_scinti.std(dim=["chain", "draw"]).values
+            val_raw_germanium, unc_raw_germanium = data_germanium.mean(dim=["chain", "draw"]).values, data_germanium.std(dim=["chain", "draw"]).values
+
+
+            val, unc = [], []
+            scinti_count, germanium_count = 0, 0
+            for idx_det in range(len(self.bind_inst.setup['detectors'])):
+                    if idx_det in self.bind_inst.mask_scinti:
+                        val.append(val_raw_scinti[scinti_count])
+                        unc.append(unc_raw_scinti[scinti_count])
+                        scinti_count += 1
+                    else:
+                        val.append(val_raw_germanium[germanium_count])
+                        unc.append(unc_raw_germanium[germanium_count])
+                        germanium_count += 1
+
+            return unp.uarray(
+                np.stack([x for x in val]),
+                np.stack([x for x in unc])
+            )
+
+        self.post_total = get_paramlist("spec_dets")
 
         if self.binwise == True:
-            self.post_nrf = unp.uarray(
-                np.concatenate([idata.posterior["nrf_inc_free_scinti"].mean(dim=["chain", "draw"]).values, idata.posterior["nrf_inc_free_germanium"].mean(dim=["chain", "draw"]).values], axis=0),
-                np.concatenate([idata.posterior["nrf_inc_free_scinti"].std(dim=["chain", "draw"]).values, idata.posterior["nrf_inc_free_germanium"].std(dim=["chain", "draw"]).values], axis=0)
-            )
+            self.post_nrf = get_paramlist("nrf_inc_free")
         else:
-            self.post_nrf =  unp.uarray(
-                np.concatenate([idata.posterior["nrf_inc_scinti"].mean(dim=["chain", "draw"]).values, idata.posterior["nrf_inc_germanium"].mean(dim=["chain", "draw"]).values], axis=0),
-                np.concatenate([idata.posterior["nrf_inc_scinti"].std(dim=["chain", "draw"]).values, idata.posterior["nrf_inc_germanium"].std(dim=["chain", "draw"]).values], axis=0)
-            )
-        self.post_nrf_fold = unp.uarray(
-            np.concatenate([idata.posterior["nrf_fold_scinti"].mean(dim=["chain", "draw"]).values, idata.posterior["nrf_fold_germanium"].mean(dim=["chain", "draw"]).values], axis=0),
-            np.concatenate([idata.posterior["nrf_fold_scinti"].std(dim=["chain", "draw"]).values, idata.posterior["nrf_fold_germanium"].std(dim=["chain", "draw"]).values], axis=0)
-        )
-        self.post_ato = unp.uarray(
-            np.concatenate([idata.posterior["Atomic_backg_scinti_inc"].mean(dim=["chain", "draw"]).values, idata.posterior["Atomic_backg_germanium_inc"].mean(dim=["chain", "draw"]).values], axis=0),
-            np.concatenate([idata.posterior["Atomic_backg_scinti_inc"].std(dim=["chain", "draw"]).values, idata.posterior["Atomic_backg_germanium_inc"].std(dim=["chain", "draw"]).values], axis=0)
-        )
+            self.post_nrf =  get_paramlist("nrf_inc")
+            
+        self.post_nrf_fold = get_paramlist("nrf_fold")
+        
+        self.post_ato = get_paramlist("Atomic_backg_inc")
 
         if self.bind_inst.ng_cont_bool:
-            self.post_ng = unp.uarray(
-                np.concatenate([idata.posterior["ng_inc_scinti"].mean(dim=["chain", "draw"]).values, idata.posterior["ng_inc_germanium"].mean(dim=["chain", "draw"]).values], axis=0),
-                np.concatenate([idata.posterior["ng_inc_scinti"].std(dim=["chain", "draw"]).values, idata.posterior["ng_inc_germanium"].std(dim=["chain", "draw"]).values], axis=0)
-            )
-            self.post_ng_fold = unp.uarray(
-                np.concatenate([idata.posterior["ng_fold_scinti"].mean(dim=["chain", "draw"]).values, idata.posterior["ng_fold_germanium"].mean(dim=["chain", "draw"]).values], axis=0),
-                np.concatenate([idata.posterior["ng_fold_scinti"].std(dim=["chain", "draw"]).values, idata.posterior["ng_fold_germanium"].std(dim=["chain", "draw"]).values], axis=0)
-            )
+            self.post_ng = get_paramlist("ng_inc")
+            self.post_ng_fold = get_paramlist("ng_fold")
         if self.bind_inst.O_cont_bool:
-            self.post_O = unp.uarray(
-                np.concatenate([idata.posterior["O_inc_scinti"].mean(dim=["chain", "draw"]).values, idata.posterior["O_inc_germanium"].mean(dim=["chain", "draw"]).values], axis=0),
-                np.concatenate([idata.posterior["O_inc_scinti"].std(dim=["chain", "draw"]).values, idata.posterior["O_inc_germanium"].std(dim=["chain", "draw"]).values], axis=0)
-            )
-            self.post_O_fold = unp.uarray(
-                np.concatenate([idata.posterior["O_fold_scinti"].mean(dim=["chain", "draw"]).values, idata.posterior["O_fold_germanium"].mean(dim=["chain", "draw"]).values], axis=0),
-                np.concatenate([idata.posterior["O_fold_scinti"].std(dim=["chain", "draw"]).values, idata.posterior["O_fold_germanium"].std(dim=["chain", "draw"]).values], axis=0)
-            )
-
-        # idata_beam = az.from_netcdf(f"{self.PP.SRC_DIR}/../gen/{project}/Results/binding_results_{self.project}_run{self.runnr}_{self.savename}_beam.nc")
+            self.post_O = get_paramlist("O_inc")
+            self.post_O_fold = get_paramlist("O_fold")
 
 
         self.res_beam_inc = unp.uarray(

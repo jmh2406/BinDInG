@@ -23,9 +23,10 @@ class td_deconv:
         self.bg_const = np.mean(self.bind_inst.spec_meas_all_dets.eval()[:, -self.bg_bins:], axis = 1)
 
         
-        self.inc = (np.linalg.inv(self.bind_inst.rema_dip[:, :, :, ::-1, ::-1].eval()) @ 
+        self.inc = (np.transpose(np.linalg.inv(self.bind_inst.rema_dip.eval()), (0, 1, 2, 4, 3)) @ 
                (self.bind_inst.spec_meas_all_dets[:, None, None, :, None].eval() - self.bg_const[:, None, None, None, None]) )[:, :, :, :, 0]
         # inc in dimensions (detectors, parities, states, bins) 
+
 
 
     def plot_td_deconv(self,
